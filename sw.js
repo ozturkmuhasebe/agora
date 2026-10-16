@@ -1,6 +1,6 @@
 // AGORA kabuğu - yalnızca kendi dosyalarını önbelleğe alır.
 // Panel verileri (Google) HİÇ önbelleğe alınmaz; her açılışta güncel gelir.
-var SURUM = "agora-v1";
+var SURUM = "agora-v2";
 var DOSYALAR = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon.png", "logo.png"];
 
 self.addEventListener("install", function (e) {
