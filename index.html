@@ -202,7 +202,7 @@
       }).then(function (adres) {
         if (!adres) return;
         // Aynı adres için günde en fazla bir kez kayıt gönder
-        var anahtar = "agora_bildirim_" + s;
+        var anahtar = "agora_bildirim2_" + s; // (2: ilk denemedeki başarısız kayıt yenilensin)
         var onceki = null;
         try { onceki = JSON.parse(localStorage.getItem(anahtar) || "null"); } catch (e) {}
         if (onceki && onceki.adres === adres && onceki.tok === tok && Date.now() - onceki.zaman < 864e5) return;
