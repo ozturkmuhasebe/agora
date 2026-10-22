@@ -57,6 +57,13 @@
     #ekleSerit button { font-size: 18px; border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer; }
     #ekleBtn { background: #fff; color: var(--koyu); font-weight: 700; }
     #sonraBtn { background: transparent; color: #fff; text-decoration: underline; }
+    /* "Bildirim gelsin mi?" şeridi (yalnızca ana ekrana eklenmiş uygulamada) */
+    #bildirimSerit { display: none; background: #fff4cc; color: #3d3200; padding: 14px 16px; border-top: 2px solid #e6cf7a;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 18px; line-height: 1.45; }
+    #bildirimSerit .satir { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    #bildirimSerit button { font-size: 18px; border: 0; border-radius: 10px; padding: 12px 18px; cursor: pointer; }
+    #bildirimEvet { background: var(--koyu); color: #fff; font-weight: 700; }
+    #bildirimHayir { background: transparent; color: #3d3200; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -72,7 +79,17 @@
     Lütfen size <b>WhatsApp</b> veya <b>e-posta</b> ile gönderilen kişisel bağlantıya dokunarak açın.
   </div>
 
-  <iframe id="panel" title="AGORA Yönetim Paneli" allow="clipboard-write" hidden></iframe>
+  <iframe id="panel" title="AGORA Yönetim Paneli" allow="web-share; clipboard-write" hidden></iframe>
+
+  <div id="bildirimSerit" role="region" aria-label="Bildirim izni">
+    <div class="satir">
+      <span>🔔 Hesap özetiniz güncellenince telefonunuza <b>bildirim</b> gelsin mi?</span>
+      <span>
+        <button id="bildirimEvet" type="button">Evet</button>
+        <button id="bildirimHayir" type="button">Hayır</button>
+      </span>
+    </div>
+  </div>
 
   <div id="ekleSerit" role="region" aria-label="Ana ekrana ekle">
     <div class="satir">
@@ -157,7 +174,72 @@
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
   }
+
+  // ---- 4) BİLDİRİMLER (Firebase Cloud Messaging) ----
+  // Yalnızca ana ekrana eklenmiş uygulamada sorulur (iPhone'da bildirim ancak böyle çalışır).
+  // İzin verilirse telefonun bildirim adresi, kişisel link anahtarıyla birlikte
+  // sitenin Google uygulamasına (doPost) kaydedilir. Kişisel veri gönderilmez.
+  var FIREBASE_AYAR = {
+    apiKey: "AIzaSyAE9zOwhp8ntNGCJbqj3y6IbzPSwLjKvgE",
+    authDomain: "agoravista-81491.firebaseapp.com",
+    projectId: "agoravista-81491",
+    storageBucket: "agoravista-81491.firebasestorage.app",
+    messagingSenderId: "826606859163",
+    appId: "1:826606859163:web:7bc0b481b1ce89386d673e"
+  };
+  var VAPID_ANAHTAR = "BNYxDd46aFF61JlOjTlmQ9Bw0yEo_EmCpxWlEffQgh3c_h_qLOgrYvCTN-lMMVEhkaj6CB5PWmk89w1ld_egQqo";
+  var bSerit = document.getElementById("bildirimSerit");
+
+  function bildirimDestekli() {
+    return !!(s && window.firebase && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window);
+  }
+
+  function cihaziKaydet() {
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_AYAR);
+      navigator.serviceWorker.ready.then(function (kayit) {
+        return firebase.messaging().getToken({ vapidKey: VAPID_ANAHTAR, serviceWorkerRegistration: kayit });
+      }).then(function (adres) {
+        if (!adres) return;
+        // Aynı adres için günde en fazla bir kez kayıt gönder
+        var anahtar = "agora_bildirim_" + s;
+        var onceki = null;
+        try { onceki = JSON.parse(localStorage.getItem(anahtar) || "null"); } catch (e) {}
+        if (onceki && onceki.adres === adres && onceki.tok === tok && Date.now() - onceki.zaman < 864e5) return;
+        return fetch("https://script.google.com/macros/s/" + encodeURIComponent(s) + "/exec", {
+          method: "POST", mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ islem: "bildirimKaydi", tok: tok, fcm: adres })
+        }).then(function () {
+          try { localStorage.setItem(anahtar, JSON.stringify({ adres: adres, tok: tok, zaman: Date.now() })); } catch (e) {}
+        });
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  window.addEventListener("load", function () {
+    if (!bildirimDestekli()) return;
+    if (Notification.permission === "granted") { cihaziKaydet(); return; } // adres tazelensin
+    if (Notification.permission !== "default" || !standalone) return;
+    var ertele = 0;
+    try { ertele = Number(localStorage.getItem("agora_bildirim_sonra") || 0); } catch (e) {}
+    if (ertele > Date.now()) return;
+    setTimeout(function () { bSerit.style.display = "block"; }, 4000); // panel açıldıktan sonra sor
+  });
+
+  document.getElementById("bildirimEvet").onclick = function () {
+    bSerit.style.display = "none";
+    Notification.requestPermission().then(function (izin) {
+      if (izin === "granted") cihaziKaydet();
+    });
+  };
+  document.getElementById("bildirimHayir").onclick = function () {
+    bSerit.style.display = "none";
+    try { localStorage.setItem("agora_bildirim_sonra", String(Date.now() + 30 * 864e5)); } catch (e) {} // 30 gün sorma
+  };
 })();
 </script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 </body>
 </html>

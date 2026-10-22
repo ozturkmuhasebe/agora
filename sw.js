@@ -1,6 +1,20 @@
+// BİLDİRİMLER: Firebase Cloud Messaging - uygulama kapalıyken gelen bildirimi gösterir.
+// (Bildirim metni ve tıklanınca açılacak adres, gönderen taraftan gelir.)
+try {
+  importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js",
+                "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+  firebase.initializeApp({
+    apiKey: "AIzaSyAE9zOwhp8ntNGCJbqj3y6IbzPSwLjKvgE",
+    projectId: "agoravista-81491",
+    messagingSenderId: "826606859163",
+    appId: "1:826606859163:web:7bc0b481b1ce89386d673e"
+  });
+  firebase.messaging();
+} catch (e) {}
+
 // AGORA kabuğu - yalnızca kendi dosyalarını önbelleğe alır.
 // Panel verileri (Google) HİÇ önbelleğe alınmaz; her açılışta güncel gelir.
-var SURUM = "agora-v2";
+var SURUM = "agora-v3";
 var DOSYALAR = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "favicon.png", "logo.png"];
 
 self.addEventListener("install", function (e) {
